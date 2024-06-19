@@ -14,6 +14,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -21,14 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(
         name = "CRUD REST APIs for Loans in EazyBank",
@@ -36,14 +32,13 @@ import org.springframework.web.bind.annotation.RestController;
 )
 @Validated
 @RestController
+@RequiredArgsConstructor
 @RequestMapping(path = "/api", produces = {MediaType.APPLICATION_JSON_VALUE})
 public class LoansController {
 
-    private final ILoansService iLoansService;
+    private static final Logger logger = LoggerFactory.getLogger(LoansController.class);
 
-    public LoansController(ILoansService iLoansService){
-        this.iLoansService = iLoansService;
-    }
+    private final ILoansService iLoansService;
 
     @Value("${build.version}")
     private String buildVersion;
@@ -101,9 +96,12 @@ public class LoansController {
     }
     )
     @GetMapping("/fetch")
-    public ResponseEntity<LoansDto> fetchLoanDetails(@RequestParam
-                                                               @Pattern(regexp="(^$|[0-9]{11})",message = "Mobile number must be 11 digits")
-                                                               String mobileNumber) {
+    public ResponseEntity<LoansDto> fetchLoanDetails(
+            @RequestHeader("eazybank-correlation-id") String correlationId,
+            @RequestParam @Pattern(regexp="(^$|[0-9]{11})",message = "Mobile number must be 11 digits") String mobileNumber) {
+
+        logger.debug("eazyBank-correlation-id found: {}", correlationId);
+
         LoansDto loansDto = iLoansService.fetchLoan(mobileNumber);
         return ResponseEntity.status(HttpStatus.OK).body(loansDto);
     }
